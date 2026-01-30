@@ -166,18 +166,6 @@ public class RemoveContainerAction extends AbstractDockerAction {
         }
     }
 
-    @Override
-    public boolean supportsRollback() {
-        // Removal is permanent - cannot be rolled back
-        return false;
-    }
-
-    @Override
-    public AdaptationActionResult rollback() {
-        logger.warn("Rollback is not supported for container removal (permanent operation)");
-        return AdaptationActionResult.NOT_SUPPORTED;
-    }
-
     /**
      * Returns whether force removal is enabled.
      *

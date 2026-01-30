@@ -14,6 +14,8 @@
 package tools.spirals.cerberus237.adaptationactionsbase.docker.actions;
 
 import com.github.dockerjava.api.DockerClient;
+
+import tools.spirals.cerberus237.adaptationactionsbase.core.IRollbackableAdaptationAction;
 import tools.spirals.cerberus237.adaptationactionsbase.docker.AbstractDockerAction;
 import tools.spirals.cerberus237.adaptationactionsbase.enums.AdaptationActionResult;
 import tools.spirals.cerberus237.adaptationactionsbase.enums.DockerActionType;
@@ -28,7 +30,7 @@ import tools.spirals.cerberus237.adaptationactionsbase.exceptions.DockerActionEx
  *
  * @author Arléon Zemtsop (Cerberus)
  */
-public class StopContainerAction extends AbstractDockerAction {
+public class StopContainerAction extends AbstractDockerAction implements IRollbackableAdaptationAction  {
 
     private boolean wasStopped = false;
 
@@ -129,11 +131,6 @@ public class StopContainerAction extends AbstractDockerAction {
                     DockerActionType.STOP_CONTAINER
             );
         }
-    }
-
-    @Override
-    public boolean supportsRollback() {
-        return true;
     }
 
     @Override

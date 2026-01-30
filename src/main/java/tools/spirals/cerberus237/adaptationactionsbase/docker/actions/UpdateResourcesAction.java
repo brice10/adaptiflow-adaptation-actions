@@ -16,6 +16,8 @@ package tools.spirals.cerberus237.adaptationactionsbase.docker.actions;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.InspectContainerResponse;
 import com.github.dockerjava.api.model.HostConfig;
+
+import tools.spirals.cerberus237.adaptationactionsbase.core.IRollbackableAdaptationAction;
 import tools.spirals.cerberus237.adaptationactionsbase.docker.AbstractDockerAction;
 import tools.spirals.cerberus237.adaptationactionsbase.enums.AdaptationActionResult;
 import tools.spirals.cerberus237.adaptationactionsbase.enums.DockerActionType;
@@ -37,7 +39,7 @@ import tools.spirals.cerberus237.adaptationactionsbase.exceptions.DockerActionEx
  *
  * @author Arléon Zemtsop (Cerberus)
  */
-public class UpdateResourcesAction extends AbstractDockerAction {
+public class UpdateResourcesAction extends AbstractDockerAction implements IRollbackableAdaptationAction  {
 
     private Long memoryLimit;
     private Long memorySwapLimit;
@@ -244,11 +246,6 @@ public class UpdateResourcesAction extends AbstractDockerAction {
                     DockerActionType.UPDATE_RESOURCES
             );
         }
-    }
-
-    @Override
-    public boolean supportsRollback() {
-        return true;
     }
 
     @Override

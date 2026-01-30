@@ -17,6 +17,8 @@ import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.CreateContainerResponse;
 import com.github.dockerjava.api.command.InspectContainerResponse;
 import com.github.dockerjava.api.model.HostConfig;
+
+import tools.spirals.cerberus237.adaptationactionsbase.core.IRollbackableAdaptationAction;
 import tools.spirals.cerberus237.adaptationactionsbase.docker.AbstractDockerAction;
 import tools.spirals.cerberus237.adaptationactionsbase.enums.AdaptationActionResult;
 import tools.spirals.cerberus237.adaptationactionsbase.enums.DockerActionType;
@@ -36,7 +38,7 @@ import java.util.UUID;
  *
  * @author Arléon Zemtsop (Cerberus)
  */
-public class ScaleOutAction extends AbstractDockerAction {
+public class ScaleOutAction extends AbstractDockerAction implements IRollbackableAdaptationAction  {
 
     private final int replicaCount;
     private final boolean autoStart;
@@ -206,11 +208,6 @@ public class ScaleOutAction extends AbstractDockerAction {
                     DockerActionType.SCALE_OUT
             );
         }
-    }
-
-    @Override
-    public boolean supportsRollback() {
-        return true;
     }
 
     @Override

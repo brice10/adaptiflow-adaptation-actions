@@ -22,8 +22,8 @@ import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
 import com.github.dockerjava.transport.DockerHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import tools.spirals.cerberus237.adaptationactionsbase.core.IAdaptationAction;
-import tools.spirals.cerberus237.adaptationactionsbase.enums.AdaptationActionResult;
 import tools.spirals.cerberus237.adaptationactionsbase.enums.DockerActionType;
 import tools.spirals.cerberus237.adaptationactionsbase.exceptions.DockerActionException;
 
@@ -46,6 +46,7 @@ public abstract class AbstractDockerAction implements IAdaptationAction {
 
     protected final String actionId;
     protected String containerId;
+    protected String containerName;
     protected final DockerActionType actionType;
     protected final DockerClient dockerClient;
     protected final int timeoutSeconds;
@@ -171,20 +172,6 @@ public abstract class AbstractDockerAction implements IAdaptationAction {
         }
     }
 
-    @Override
-    public boolean supportsRollback() {
-        return false; // Override in subclasses that support rollback
-    }
-
-    @Override
-    public AdaptationActionResult rollback() {
-        if (!supportsRollback()) {
-            logger.warn("Rollback is not supported for action: {}", actionType);
-            return AdaptationActionResult.NOT_SUPPORTED;
-        }
-        return AdaptationActionResult.ROLLBACK_FAILED;
-    }
-
     /**
      * Finds a container by its ID or name.
      *
@@ -207,6 +194,7 @@ public abstract class AbstractDockerAction implements IAdaptationAction {
                 String normalizedName = name.startsWith("/") ? name.substring(1) : name;
                 if (normalizedName.equals(containerIdOrName) || 
                     normalizedName.startsWith(containerIdOrName)) {
+                    containerName = containerIdOrName;
                     containerId = container.getId();
                     return container;
                 }

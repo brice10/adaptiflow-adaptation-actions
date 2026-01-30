@@ -233,18 +233,6 @@ public class ExecCommandAction extends AbstractDockerAction {
         }
     }
 
-    @Override
-    public boolean supportsRollback() {
-        // Command execution cannot be rolled back
-        return false;
-    }
-
-    @Override
-    public AdaptationActionResult rollback() {
-        logger.warn("Rollback is not supported for exec command actions");
-        return AdaptationActionResult.NOT_SUPPORTED;
-    }
-
     /**
      * Returns the command to execute.
      *

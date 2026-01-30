@@ -58,22 +58,4 @@ public interface IAdaptationAction {
      * @return true if the action can be performed, false otherwise
      */
     boolean canPerform();
-
-    /**
-     * Rolls back the adaptation action if possible.
-     * <p>
-     * This method attempts to revert the changes made by the {@code perform} method.
-     * Not all actions support rollback.
-     * </p>
-     *
-     * @return the result of the rollback operation
-     */
-    AdaptationActionResult rollback();
-
-    /**
-     * Checks if this action supports rollback.
-     *
-     * @return true if rollback is supported, false otherwise
-     */
-    boolean supportsRollback();
 }

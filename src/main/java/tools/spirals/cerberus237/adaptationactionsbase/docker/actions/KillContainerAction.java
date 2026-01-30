@@ -14,6 +14,8 @@
 package tools.spirals.cerberus237.adaptationactionsbase.docker.actions;
 
 import com.github.dockerjava.api.DockerClient;
+
+import tools.spirals.cerberus237.adaptationactionsbase.core.IRollbackableAdaptationAction;
 import tools.spirals.cerberus237.adaptationactionsbase.docker.AbstractDockerAction;
 import tools.spirals.cerberus237.adaptationactionsbase.enums.AdaptationActionResult;
 import tools.spirals.cerberus237.adaptationactionsbase.enums.DockerActionType;
@@ -28,7 +30,7 @@ import tools.spirals.cerberus237.adaptationactionsbase.exceptions.DockerActionEx
  *
  * @author Arléon Zemtsop (Cerberus)
  */
-public class KillContainerAction extends AbstractDockerAction {
+public class KillContainerAction extends AbstractDockerAction implements IRollbackableAdaptationAction  {
 
     private final String signal;
     private boolean wasKilled = false;
@@ -144,11 +146,6 @@ public class KillContainerAction extends AbstractDockerAction {
                     DockerActionType.KILL_CONTAINER
             );
         }
-    }
-
-    @Override
-    public boolean supportsRollback() {
-        return true;
     }
 
     @Override

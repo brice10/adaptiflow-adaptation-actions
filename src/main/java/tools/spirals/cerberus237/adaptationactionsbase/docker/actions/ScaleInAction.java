@@ -204,18 +204,6 @@ public class ScaleInAction extends AbstractDockerAction {
         }
     }
 
-    @Override
-    public boolean supportsRollback() {
-        // Scale in removes containers - cannot be truly rolled back
-        return false;
-    }
-
-    @Override
-    public AdaptationActionResult rollback() {
-        logger.warn("Rollback is not supported for scale in (container removal is permanent)");
-        return AdaptationActionResult.NOT_SUPPORTED;
-    }
-
     /**
      * Finds containers matching the name pattern and optional image filter.
      *
