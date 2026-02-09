@@ -23,21 +23,21 @@ public class SampleRollbackableAdaptationActionTest {
     @Test
     public void testPerform_Failure() {
         action = new SampleRollbackableAdaptationAction("action1", "This is a sample rollbackable action.");
-        action.canPerform = false; // Simule l'impossibilité d'effectuer l'action
+        action.canPerform = false; 
         AdaptationActionResult result = action.perform();
         assertEquals(AdaptationActionResult.FAILURE, result);
     }
 
     @Test
     public void testRollback_Success() {
-        action.perform(); // Exécute l'action d'abord
+        action.perform(); 
         AdaptationActionResult result = action.rollback();
         assertEquals(AdaptationActionResult.SUCCESS, result);
     }
 
     @Test
     public void testRollback_Failure() {
-        AdaptationActionResult result = action.rollback(); // Essaye de rollback sans avoir effectué l'action
+        AdaptationActionResult result = action.rollback(); 
         assertEquals(AdaptationActionResult.FAILURE, result);
     }
 
@@ -56,7 +56,7 @@ public class SampleRollbackableAdaptationActionTest {
         assertTrue(action.canPerform());
 
         action = new SampleRollbackableAdaptationAction("action1", "This is a sample rollbackable action.");
-        action.canPerform = false; // Simule l'impossibilité d'effectuer l'action
+        action.canPerform = false; 
         assertFalse(action.canPerform());
     }
 
