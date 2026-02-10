@@ -14,9 +14,11 @@
 package tools.spirals.cerberus237.adaptationactionsbase.docker.actions;
 
 import com.github.dockerjava.api.DockerClient;
+import com.github.dockerjava.api.model.Container;
 
 import tools.spirals.cerberus237.adaptationactionsbase.core.IRollbackableAdaptationAction;
 import tools.spirals.cerberus237.adaptationactionsbase.docker.AbstractDockerAction;
+import tools.spirals.cerberus237.adaptationactionsbase.docker.DockerUtils;
 import tools.spirals.cerberus237.adaptationactionsbase.enums.AdaptationActionResult;
 import tools.spirals.cerberus237.adaptationactionsbase.enums.DockerActionType;
 import tools.spirals.cerberus237.adaptationactionsbase.exceptions.DockerActionException;
@@ -69,8 +71,11 @@ public class UnpauseContainerAction extends AbstractDockerAction implements IRol
             return false;
         }
         try {
+            Container container = DockerUtils.findContainer(dockerClient, containerId);
+            if (container == null)
+                throw new DockerActionException("Container not found: " + containerId, containerId, actionType);
             // Container must be paused to be unpaused
-            return isContainerPaused(containerId);
+            return DockerUtils.isContainerPaused(container);
         } catch (Exception e) {
             logger.warn("Cannot perform unpause action: {}", e.getMessage());
             return false;
@@ -82,26 +87,28 @@ public class UnpauseContainerAction extends AbstractDockerAction implements IRol
         logActionStart();
 
         try {
+            Container container = DockerUtils.findContainer(dockerClient, containerId);
+            if (container == null)
+                throw new DockerActionException("Container not found: " + containerId, containerId, actionType);
             // Check if container is already running (not paused)
-            if (isContainerRunning(containerId)) {
-                logger.info("Container {} is already running", containerId);
+            if (DockerUtils.isContainerRunning(container)) {
+                logger.info("Container {} is already running", container.getId());
                 return AdaptationActionResult.SKIPPED;
             }
 
             // Check if container is paused
-            if (!isContainerPaused(containerId)) {
-                logger.warn("Container {} is not paused, cannot unpause", containerId);
+            if (!DockerUtils.isContainerPaused(container)) {
+                logger.warn("Container {} is not paused, cannot unpause", container.getId());
                 return AdaptationActionResult.SKIPPED;
             }
 
-            // Find and unpause the container
-            findContainer(containerId);
-            dockerClient.unpauseContainerCmd(containerId).exec();
+            // Unpause the container
+            dockerClient.unpauseContainerCmd(container.getId()).exec();
             wasUnpaused = true;
 
             // Verify container is running
             Thread.sleep(500); // Brief wait for state change
-            if (!isContainerRunning(containerId)) {
+            if (!DockerUtils.isContainerRunning(dockerClient, container.getId())) {
                 throw new DockerActionException(
                         "Container state did not change to running after unpause",
                         containerId,
@@ -140,11 +147,16 @@ public class UnpauseContainerAction extends AbstractDockerAction implements IRol
         logger.info("Rolling back unpause action - pausing container: {}", containerId);
 
         try {
+            Container container = DockerUtils.findContainer(dockerClient, containerId);
+            if (container == null)
+                throw new DockerActionException("Container not found: " + containerId, containerId, actionType);
+
             dockerClient.pauseContainerCmd(containerId).exec();
+
 
             // Verify container is paused
             Thread.sleep(500);
-            if (!isContainerPaused(containerId)) {
+            if (!DockerUtils.isContainerPaused(dockerClient, container.getId())) {
                 logger.warn("Container did not return to paused state during rollback");
                 return AdaptationActionResult.ROLLBACK_FAILED;
             }

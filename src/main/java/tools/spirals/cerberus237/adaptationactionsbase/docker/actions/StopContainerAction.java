@@ -14,9 +14,11 @@
 package tools.spirals.cerberus237.adaptationactionsbase.docker.actions;
 
 import com.github.dockerjava.api.DockerClient;
+import com.github.dockerjava.api.model.Container;
 
 import tools.spirals.cerberus237.adaptationactionsbase.core.IRollbackableAdaptationAction;
 import tools.spirals.cerberus237.adaptationactionsbase.docker.AbstractDockerAction;
+import tools.spirals.cerberus237.adaptationactionsbase.docker.DockerUtils;
 import tools.spirals.cerberus237.adaptationactionsbase.enums.AdaptationActionResult;
 import tools.spirals.cerberus237.adaptationactionsbase.enums.DockerActionType;
 import tools.spirals.cerberus237.adaptationactionsbase.exceptions.DockerActionException;
@@ -71,7 +73,10 @@ public class StopContainerAction extends AbstractDockerAction implements IRollba
         }
         try {
             // Check if container exists and is running
-            return isContainerRunning(containerId);
+            Container container = DockerUtils.findContainer(dockerClient, containerId);
+            if (container == null)
+                throw new DockerActionException("Container not found: " + containerId, containerId, actionType);
+            return true;
         } catch (Exception e) {
             logger.warn("Cannot perform stop action: {}", e.getMessage());
             return false;
@@ -83,15 +88,15 @@ public class StopContainerAction extends AbstractDockerAction implements IRollba
         logActionStart();
 
         try {
+            Container container = DockerUtils.findContainer(dockerClient, containerId);
             // Check if container is already stopped
-            if (isContainerStopped(containerId)) {
-                logger.info("Container {} is already stopped", containerId);
+            if (DockerUtils.isContainerStopped(container)) {
+                logger.info("Container {} is already stopped", container.getId());
                 return AdaptationActionResult.SKIPPED;
             }
 
-            // Find and stop the container
-            findContainer(containerId);
-            dockerClient.stopContainerCmd(containerId)
+            // Stop the container
+            dockerClient.stopContainerCmd(container.getId())
                     .withTimeout(timeoutSeconds)
                     .exec();
             wasStopped = true;
@@ -99,12 +104,12 @@ public class StopContainerAction extends AbstractDockerAction implements IRollba
             // Wait for container to stop
             int attempts = 0;
             int maxAttempts = timeoutSeconds + 5; // Extra buffer for stop command
-            while (attempts < maxAttempts && isContainerRunning(containerId)) {
+            while (attempts < maxAttempts && DockerUtils.isContainerRunning(dockerClient, container.getId())) {
                 Thread.sleep(1000);
                 attempts++;
             }
 
-            if (isContainerRunning(containerId)) {
+            if (DockerUtils.isContainerRunning(dockerClient, container.getId())) {
                 throw new DockerActionException(
                         "Container failed to stop within timeout",
                         containerId,
@@ -143,17 +148,21 @@ public class StopContainerAction extends AbstractDockerAction implements IRollba
         logger.info("Rolling back stop action - starting container: {}", containerId);
 
         try {
+            Container container = DockerUtils.findContainer(dockerClient, containerId);
+            if (container == null)
+                throw new DockerActionException("Container not found: " + containerId, containerId, actionType);
+
             dockerClient.startContainerCmd(containerId).exec();
 
             // Wait for container to start
             int attempts = 0;
             int maxAttempts = timeoutSeconds;
-            while (attempts < maxAttempts && !isContainerRunning(containerId)) {
+            while (attempts < maxAttempts && !DockerUtils.isContainerRunning(dockerClient, container.getId())) {
                 Thread.sleep(1000);
                 attempts++;
             }
 
-            if (!isContainerRunning(containerId)) {
+            if (!DockerUtils.isContainerRunning(dockerClient, container.getId())) {
                 logger.warn("Container did not start within timeout during rollback");
                 return AdaptationActionResult.ROLLBACK_FAILED;
             }

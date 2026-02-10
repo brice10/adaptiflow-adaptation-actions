@@ -10,7 +10,6 @@ import org.junit.Test;
 
 import tools.spirals.cerberus237.adaptationactionsbase.enums.AdaptationActionResult;
 import tools.spirals.cerberus237.adaptationactionsbase.enums.DockerActionType;
-import tools.spirals.cerberus237.adaptationactionsbase.exceptions.DockerActionException;
 
 import java.time.Duration;
 
@@ -88,22 +87,5 @@ public class AbstractDockerActionTest {
                         .connectionTimeout(Duration.ofSeconds(30))
                         .responseTimeout(Duration.ofSeconds(45))
                         .build());
-    }
-
-    // Tests the findContainer method (mock)
-    @Test
-    public void testFindContainer_ThrowException() {
-        try {
-            startAction.findContainer("nonExistentContainer");
-            fail("Expected DockerActionException");
-        } catch (DockerActionException e) {
-            assertEquals("Container not found: nonExistentContainer", e.getMessage());
-        }
-    }
-
-    // Tests the isContainerRunning method (mock)
-    @Test
-    public void testIsContainerRunning() {
-        assertFalse(startAction.isContainerRunning("mockContainerId"));  // Simulate the container not being found
     }
 }

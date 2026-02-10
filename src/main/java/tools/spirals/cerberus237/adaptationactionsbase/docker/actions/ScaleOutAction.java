@@ -16,10 +16,12 @@ package tools.spirals.cerberus237.adaptationactionsbase.docker.actions;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.CreateContainerResponse;
 import com.github.dockerjava.api.command.InspectContainerResponse;
+import com.github.dockerjava.api.model.Container;
 import com.github.dockerjava.api.model.HostConfig;
 
 import tools.spirals.cerberus237.adaptationactionsbase.core.IRollbackableAdaptationAction;
 import tools.spirals.cerberus237.adaptationactionsbase.docker.AbstractDockerAction;
+import tools.spirals.cerberus237.adaptationactionsbase.docker.DockerUtils;
 import tools.spirals.cerberus237.adaptationactionsbase.enums.AdaptationActionResult;
 import tools.spirals.cerberus237.adaptationactionsbase.enums.DockerActionType;
 import tools.spirals.cerberus237.adaptationactionsbase.exceptions.DockerActionException;
@@ -132,7 +134,9 @@ public class ScaleOutAction extends AbstractDockerAction implements IRollbackabl
         }
         try {
             // Source container must exist
-            findContainer(containerId);
+            Container container = DockerUtils.findContainer(dockerClient, containerId);
+            if (container == null)
+                throw new DockerActionException("Container not found: " + containerId, containerId, actionType);
             return true;
         } catch (Exception e) {
             logger.warn("Cannot perform scale out action: {}", e.getMessage());
@@ -147,8 +151,10 @@ public class ScaleOutAction extends AbstractDockerAction implements IRollbackabl
 
         try {
             // Get the source container's configuration
-            findContainer(containerId);
-            InspectContainerResponse sourceContainer = dockerClient.inspectContainerCmd(containerId).exec();
+            Container container = DockerUtils.findContainer(dockerClient, containerId);
+            if (container == null)
+                throw new DockerActionException("Container not found: " + containerId, containerId, actionType);
+            InspectContainerResponse sourceContainer = dockerClient.inspectContainerCmd(container.getId()).exec();
             String imageName = sourceContainer.getConfig().getImage();
             HostConfig sourceHostConfig = sourceContainer.getHostConfig();
 

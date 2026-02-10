@@ -14,9 +14,11 @@
 package tools.spirals.cerberus237.adaptationactionsbase.docker.actions;
 
 import com.github.dockerjava.api.DockerClient;
+import com.github.dockerjava.api.model.Container;
 
 import tools.spirals.cerberus237.adaptationactionsbase.core.IRollbackableAdaptationAction;
 import tools.spirals.cerberus237.adaptationactionsbase.docker.AbstractDockerAction;
+import tools.spirals.cerberus237.adaptationactionsbase.docker.DockerUtils;
 import tools.spirals.cerberus237.adaptationactionsbase.enums.AdaptationActionResult;
 import tools.spirals.cerberus237.adaptationactionsbase.enums.DockerActionType;
 import tools.spirals.cerberus237.adaptationactionsbase.exceptions.DockerActionException;
@@ -72,7 +74,9 @@ public class RestartContainerAction extends AbstractDockerAction implements IRol
         }
         try {
             // Container must exist to be restarted
-            findContainer(containerId);
+            Container container = DockerUtils.findContainer(dockerClient, containerId);
+            if (container == null)
+                throw new DockerActionException("Container not found: " + containerId, containerId, actionType);
             return true;
         } catch (Exception e) {
             logger.warn("Cannot perform restart action: {}", e.getMessage());
@@ -85,18 +89,20 @@ public class RestartContainerAction extends AbstractDockerAction implements IRol
         logActionStart();
 
         try {
+            Container container = DockerUtils.findContainer(dockerClient, containerId);
+            if (container == null)
+                throw new DockerActionException("Container not found: " + containerId, containerId, actionType);
             // Store previous state for potential rollback/logging
-            if (isContainerRunning(containerId)) {
+            if (DockerUtils.isContainerRunning(container)) {
                 previousState = "running";
-            } else if (isContainerPaused(containerId)) {
+            } else if (DockerUtils.isContainerPaused(container)) {
                 previousState = "paused";
             } else {
                 previousState = "stopped";
             }
 
-            // Find and restart the container
-            findContainer(containerId);
-            dockerClient.restartContainerCmd(containerId)
+            // Restart the container
+            dockerClient.restartContainerCmd(container.getId())
                     .withTimeout(timeoutSeconds)
                     .exec();
             wasRestarted = true;
@@ -104,12 +110,12 @@ public class RestartContainerAction extends AbstractDockerAction implements IRol
             // Wait for container to be running
             int attempts = 0;
             int maxAttempts = timeoutSeconds * 2; // Allow time for stop + start
-            while (attempts < maxAttempts && !isContainerRunning(containerId)) {
+            while (attempts < maxAttempts && !DockerUtils.isContainerRunning(dockerClient, container.getId())) {
                 Thread.sleep(1000);
                 attempts++;
             }
 
-            if (!isContainerRunning(containerId)) {
+            if (!DockerUtils.isContainerRunning(dockerClient, container.getId())) {
                 throw new DockerActionException(
                         "Container failed to restart within timeout",
                         containerId,
@@ -159,7 +165,7 @@ public class RestartContainerAction extends AbstractDockerAction implements IRol
                     break;
                 case "running":
                     // Container should already be running after restart
-                    if (!isContainerRunning(containerId)) {
+                    if (!DockerUtils.isContainerRunning(dockerClient, containerId)) {
                         dockerClient.startContainerCmd(containerId).exec();
                     }
                     break;

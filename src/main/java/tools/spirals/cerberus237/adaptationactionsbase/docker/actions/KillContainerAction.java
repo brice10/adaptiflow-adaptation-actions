@@ -14,9 +14,11 @@
 package tools.spirals.cerberus237.adaptationactionsbase.docker.actions;
 
 import com.github.dockerjava.api.DockerClient;
+import com.github.dockerjava.api.model.Container;
 
 import tools.spirals.cerberus237.adaptationactionsbase.core.IRollbackableAdaptationAction;
 import tools.spirals.cerberus237.adaptationactionsbase.docker.AbstractDockerAction;
+import tools.spirals.cerberus237.adaptationactionsbase.docker.DockerUtils;
 import tools.spirals.cerberus237.adaptationactionsbase.enums.AdaptationActionResult;
 import tools.spirals.cerberus237.adaptationactionsbase.enums.DockerActionType;
 import tools.spirals.cerberus237.adaptationactionsbase.exceptions.DockerActionException;
@@ -24,13 +26,14 @@ import tools.spirals.cerberus237.adaptationactionsbase.exceptions.DockerActionEx
 /**
  * Adaptation action that forcefully kills a Docker container.
  * <p>
- * This action sends a SIGKILL signal (or a specified signal) to the main process
+ * This action sends a SIGKILL signal (or a specified signal) to the main
+ * process
  * in the container. Unlike stop, kill does not wait for graceful shutdown.
  * </p>
  *
  * @author Arléon Zemtsop (Cerberus)
  */
-public class KillContainerAction extends AbstractDockerAction implements IRollbackableAdaptationAction  {
+public class KillContainerAction extends AbstractDockerAction implements IRollbackableAdaptationAction {
 
     private final String signal;
     private boolean wasKilled = false;
@@ -89,7 +92,8 @@ public class KillContainerAction extends AbstractDockerAction implements IRollba
         }
         try {
             // Container must be running or paused to be killed
-            return isContainerRunning(containerId) || isContainerPaused(containerId);
+            return DockerUtils.isContainerRunning(dockerClient, containerId)
+                    || DockerUtils.isContainerPaused(dockerClient, containerId);
         } catch (Exception e) {
             logger.warn("Cannot perform kill action: {}", e.getMessage());
             return false;
@@ -103,28 +107,29 @@ public class KillContainerAction extends AbstractDockerAction implements IRollba
 
         try {
             // Check if container is already stopped
-            if (isContainerStopped(containerId)) {
+            if (DockerUtils.isContainerStopped(dockerClient, containerId)) {
                 logger.info("Container {} is already stopped", containerId);
                 return AdaptationActionResult.SKIPPED;
             }
 
             // Find and kill the container
-            findContainer(containerId);
-            dockerClient.killContainerCmd(containerId)
+            Container container = DockerUtils.findContainer(dockerClient, containerId);
+            if (container == null)
+                throw new DockerActionException("Container not found: " + containerId, containerId, actionType);
+            dockerClient.killContainerCmd(container.getId())
                     .withSignal(signal)
                     .exec();
             wasKilled = true;
 
             // Wait briefly for container to be killed
             Thread.sleep(1000);
-            
+
             // Verify container is stopped
-            if (isContainerRunning(containerId)) {
+            if (DockerUtils.isContainerRunning(dockerClient, container.getId())) {
                 throw new DockerActionException(
                         "Container still running after kill signal",
                         containerId,
-                        DockerActionType.KILL_CONTAINER
-                );
+                        DockerActionType.KILL_CONTAINER);
             }
 
             logActionSuccess();
@@ -143,8 +148,7 @@ public class KillContainerAction extends AbstractDockerAction implements IRollba
                     "Failed to kill container: " + e.getMessage(),
                     e,
                     containerId,
-                    DockerActionType.KILL_CONTAINER
-            );
+                    DockerActionType.KILL_CONTAINER);
         }
     }
 
@@ -159,16 +163,17 @@ public class KillContainerAction extends AbstractDockerAction implements IRollba
 
         try {
             dockerClient.startContainerCmd(containerId).exec();
+            Container container = DockerUtils.findContainer(dockerClient, containerId);
 
             // Wait for container to start
             int attempts = 0;
             int maxAttempts = timeoutSeconds;
-            while (attempts < maxAttempts && !isContainerRunning(containerId)) {
+            while (attempts < maxAttempts && !DockerUtils.isContainerRunning(dockerClient, container.getId())) {
                 Thread.sleep(1000);
                 attempts++;
             }
 
-            if (!isContainerRunning(containerId)) {
+            if (!DockerUtils.isContainerRunning(dockerClient, container.getId())) {
                 logger.warn("Container did not start within timeout during rollback");
                 return AdaptationActionResult.ROLLBACK_FAILED;
             }

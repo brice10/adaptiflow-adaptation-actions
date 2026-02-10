@@ -15,10 +15,12 @@ package tools.spirals.cerberus237.adaptationactionsbase.docker.actions;
 
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.InspectContainerResponse;
+import com.github.dockerjava.api.model.Container;
 import com.github.dockerjava.api.model.HostConfig;
 
 import tools.spirals.cerberus237.adaptationactionsbase.core.IRollbackableAdaptationAction;
 import tools.spirals.cerberus237.adaptationactionsbase.docker.AbstractDockerAction;
+import tools.spirals.cerberus237.adaptationactionsbase.docker.DockerUtils;
 import tools.spirals.cerberus237.adaptationactionsbase.enums.AdaptationActionResult;
 import tools.spirals.cerberus237.adaptationactionsbase.enums.DockerActionType;
 import tools.spirals.cerberus237.adaptationactionsbase.exceptions.DockerActionException;
@@ -171,7 +173,9 @@ public class UpdateResourcesAction extends AbstractDockerAction implements IRoll
         }
         try {
             // Container must exist
-            findContainer(containerId);
+            Container container = DockerUtils.findContainer(dockerClient, containerId);
+            if (container == null)
+                throw new DockerActionException("Container not found: " + containerId, containerId, actionType);
             // At least one resource update must be specified
             return memoryLimit != null || memorySwapLimit != null || 
                    cpuShares != null || cpuPeriod != null || 
@@ -189,8 +193,10 @@ public class UpdateResourcesAction extends AbstractDockerAction implements IRoll
 
         try {
             // Store current values for potential rollback
-            findContainer(containerId);
-            InspectContainerResponse inspection = dockerClient.inspectContainerCmd(containerId).exec();
+            Container container = DockerUtils.findContainer(dockerClient, containerId);
+            if (container == null)
+                throw new DockerActionException("Container not found: " + containerId, containerId, actionType);
+            InspectContainerResponse inspection = dockerClient.inspectContainerCmd(container.getId()).exec();
             HostConfig currentConfig = inspection.getHostConfig();
 
             previousMemoryLimit = currentConfig.getMemory();
@@ -258,7 +264,11 @@ public class UpdateResourcesAction extends AbstractDockerAction implements IRoll
         logger.info("Rolling back resource updates for container: {}", containerId);
 
         try {
-            var updateCmd = dockerClient.updateContainerCmd(containerId);
+            Container container = DockerUtils.findContainer(dockerClient, containerId);
+            if (container == null)
+                throw new DockerActionException("Container not found: " + containerId, containerId, actionType);
+
+            var updateCmd = dockerClient.updateContainerCmd(container.getId());
 
             if (previousMemoryLimit != null) {
                 updateCmd.withMemory(previousMemoryLimit);

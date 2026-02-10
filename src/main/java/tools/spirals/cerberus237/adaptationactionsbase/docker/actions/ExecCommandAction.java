@@ -15,9 +15,11 @@ package tools.spirals.cerberus237.adaptationactionsbase.docker.actions;
 
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.ExecCreateCmdResponse;
+import com.github.dockerjava.api.model.Container;
 import com.github.dockerjava.api.model.Frame;
 import com.github.dockerjava.core.command.ExecStartResultCallback;
 import tools.spirals.cerberus237.adaptationactionsbase.docker.AbstractDockerAction;
+import tools.spirals.cerberus237.adaptationactionsbase.docker.DockerUtils;
 import tools.spirals.cerberus237.adaptationactionsbase.enums.AdaptationActionResult;
 import tools.spirals.cerberus237.adaptationactionsbase.enums.DockerActionType;
 import tools.spirals.cerberus237.adaptationactionsbase.exceptions.DockerActionException;
@@ -137,7 +139,7 @@ public class ExecCommandAction extends AbstractDockerAction {
         }
         try {
             // Container must be running
-            return isContainerRunning(containerId) && command != null && command.length > 0;
+            return  DockerUtils.isContainerRunning(dockerClient, containerId) && command != null && command.length > 0;
         } catch (Exception e) {
             logger.warn("Cannot perform exec command action: {}", e.getMessage());
             return false;
@@ -156,8 +158,13 @@ public class ExecCommandAction extends AbstractDockerAction {
         logger.info("Executing command in container {}: {}", containerId, Arrays.toString(command));
 
         try {
+            // Find the container
+            Container container = DockerUtils.findContainer(dockerClient, containerId);
+            if (container == null)
+                throw new DockerActionException("Container not found: " + containerId, containerId, actionType);
+
             // Create exec instance
-            var execCreateCmd = dockerClient.execCreateCmd(containerId)
+            var execCreateCmd = dockerClient.execCreateCmd(container.getId())
                     .withAttachStdout(attachStdout)
                     .withAttachStderr(attachStderr)
                     .withCmd(command);

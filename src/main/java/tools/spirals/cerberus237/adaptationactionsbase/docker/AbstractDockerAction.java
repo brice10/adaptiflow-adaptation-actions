@@ -14,7 +14,6 @@
 package tools.spirals.cerberus237.adaptationactionsbase.docker;
 
 import com.github.dockerjava.api.DockerClient;
-import com.github.dockerjava.api.model.Container;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
 import com.github.dockerjava.core.DockerClientConfig;
 import com.github.dockerjava.core.DockerClientImpl;
@@ -25,10 +24,8 @@ import org.slf4j.LoggerFactory;
 
 import tools.spirals.cerberus237.adaptationactionsbase.core.IAdaptationAction;
 import tools.spirals.cerberus237.adaptationactionsbase.enums.DockerActionType;
-import tools.spirals.cerberus237.adaptationactionsbase.exceptions.DockerActionException;
 
 import java.time.Duration;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -168,87 +165,6 @@ public abstract class AbstractDockerAction implements IAdaptationAction {
             return true;
         } catch (Exception e) {
             logger.warn("Docker is not available: {}", e.getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Finds a container by its ID or name.
-     *
-     * @param containerIdOrName the container ID or name to search for
-     * @return the Container object if found
-     * @throws DockerActionException if the container is not found
-     */
-    protected Container findContainer(String containerIdOrName) {
-        List<Container> containers = dockerClient.listContainersCmd()
-                .withShowAll(true)
-                .exec();
-
-        for (Container container : containers) {
-            if (container.getId().equals(containerIdOrName) || 
-                container.getId().startsWith(containerIdOrName)) {
-                return container;
-            }
-            for (String name : container.getNames()) {
-                // Container names are prefixed with '/'
-                String normalizedName = name.startsWith("/") ? name.substring(1) : name;
-                if (normalizedName.equals(containerIdOrName) || 
-                    normalizedName.startsWith(containerIdOrName)) {
-                    containerName = containerIdOrName;
-                    containerId = container.getId();
-                    return container;
-                }
-            }
-        }
-        throw new DockerActionException(
-                "Container not found: " + containerIdOrName,
-                containerIdOrName,
-                actionType
-        );
-    }
-
-    /**
-     * Checks if a container is in a running state.
-     *
-     * @param containerIdOrName the container ID or name
-     * @return true if the container is running
-     */
-    protected boolean isContainerRunning(String containerIdOrName) {
-        try {
-            Container container = findContainer(containerIdOrName);
-            return "running".equalsIgnoreCase(container.getState());
-        } catch (DockerActionException e) {
-            return false;
-        }
-    }
-
-    /**
-     * Checks if a container is in a paused state.
-     *
-     * @param containerIdOrName the container ID or name
-     * @return true if the container is paused
-     */
-    protected boolean isContainerPaused(String containerIdOrName) {
-        try {
-            Container container = findContainer(containerIdOrName);
-            return "paused".equalsIgnoreCase(container.getState());
-        } catch (DockerActionException e) {
-            return false;
-        }
-    }
-
-    /**
-     * Checks if a container is in a stopped/exited state.
-     *
-     * @param containerIdOrName the container ID or name
-     * @return true if the container is stopped
-     */
-    protected boolean isContainerStopped(String containerIdOrName) {
-        try {
-            Container container = findContainer(containerIdOrName);
-            String state = container.getState();
-            return "exited".equalsIgnoreCase(state) || "created".equalsIgnoreCase(state);
-        } catch (DockerActionException e) {
             return false;
         }
     }

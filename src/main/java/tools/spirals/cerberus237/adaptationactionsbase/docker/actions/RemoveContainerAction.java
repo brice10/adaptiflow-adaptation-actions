@@ -14,7 +14,10 @@
 package tools.spirals.cerberus237.adaptationactionsbase.docker.actions;
 
 import com.github.dockerjava.api.DockerClient;
+import com.github.dockerjava.api.model.Container;
+
 import tools.spirals.cerberus237.adaptationactionsbase.docker.AbstractDockerAction;
+import tools.spirals.cerberus237.adaptationactionsbase.docker.DockerUtils;
 import tools.spirals.cerberus237.adaptationactionsbase.enums.AdaptationActionResult;
 import tools.spirals.cerberus237.adaptationactionsbase.enums.DockerActionType;
 import tools.spirals.cerberus237.adaptationactionsbase.exceptions.DockerActionException;
@@ -93,7 +96,7 @@ public class RemoveContainerAction extends AbstractDockerAction {
      * @param dockerClient   the Docker client to use
      */
     public RemoveContainerAction(String containerId, boolean force, boolean removeVolumes,
-                                 int timeoutSeconds, DockerClient dockerClient) {
+            int timeoutSeconds, DockerClient dockerClient) {
         super(containerId, DockerActionType.REMOVE_CONTAINER, timeoutSeconds, dockerClient);
         this.force = force;
         this.removeVolumes = removeVolumes;
@@ -106,9 +109,11 @@ public class RemoveContainerAction extends AbstractDockerAction {
         }
         try {
             // Container must exist
-            findContainer(containerId);
+            Container container = DockerUtils.findContainer(dockerClient, containerId);
+            if (container == null)
+                throw new DockerActionException("Container not found: " + containerId, containerId, actionType);
             // If not forcing, container must be stopped
-            if (!force && (isContainerRunning(containerId) || isContainerPaused(containerId))) {
+            if (!force && (DockerUtils.isContainerRunning(container) || DockerUtils.isContainerPaused(container))) {
                 logger.warn("Container {} is running and force is not enabled", containerId);
                 return false;
             }
@@ -126,31 +131,25 @@ public class RemoveContainerAction extends AbstractDockerAction {
 
         try {
             // Find the container
-            findContainer(containerId);
+            Container container = DockerUtils.findContainer(dockerClient, containerId);
+            if (container == null)
+                throw new DockerActionException("Container not found: " + containerId, containerId, actionType);
 
             // Remove the container
-            dockerClient.removeContainerCmd(containerId)
+            dockerClient.removeContainerCmd(container.getId())
                     .withForce(force)
                     .withRemoveVolumes(removeVolumes)
                     .exec();
 
-            // Verify container is removed
-            try {
-                findContainer(containerId);
-                // If we get here, container still exists
+            Container containerFound = DockerUtils.findContainer(dockerClient, containerId);
+            if (containerFound != null)
                 throw new DockerActionException(
                         "Container still exists after removal",
                         containerId,
-                        DockerActionType.REMOVE_CONTAINER
-                );
-            } catch (DockerActionException e) {
-                // Expected - container not found means it was successfully removed
-                if (e.getMessage().contains("not found")) {
-                    logActionSuccess();
-                    return AdaptationActionResult.SUCCESS;
-                }
-                throw e;
-            }
+                        DockerActionType.REMOVE_CONTAINER);
+
+            logActionSuccess();
+            return AdaptationActionResult.SUCCESS;
 
         } catch (DockerActionException e) {
             logActionFailure(e);
@@ -161,8 +160,7 @@ public class RemoveContainerAction extends AbstractDockerAction {
                     "Failed to remove container: " + e.getMessage(),
                     e,
                     containerId,
-                    DockerActionType.REMOVE_CONTAINER
-            );
+                    DockerActionType.REMOVE_CONTAINER);
         }
     }
 

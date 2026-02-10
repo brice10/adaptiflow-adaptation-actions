@@ -14,9 +14,11 @@
 package tools.spirals.cerberus237.adaptationactionsbase.docker.actions;
 
 import com.github.dockerjava.api.DockerClient;
+import com.github.dockerjava.api.model.Container;
 
 import tools.spirals.cerberus237.adaptationactionsbase.core.IRollbackableAdaptationAction;
 import tools.spirals.cerberus237.adaptationactionsbase.docker.AbstractDockerAction;
+import tools.spirals.cerberus237.adaptationactionsbase.docker.DockerUtils;
 import tools.spirals.cerberus237.adaptationactionsbase.enums.AdaptationActionResult;
 import tools.spirals.cerberus237.adaptationactionsbase.enums.DockerActionType;
 import tools.spirals.cerberus237.adaptationactionsbase.exceptions.DockerActionException;
@@ -30,7 +32,7 @@ import tools.spirals.cerberus237.adaptationactionsbase.exceptions.DockerActionEx
  *
  * @author Arléon Zemtsop (Cerberus)
  */
-public class PauseContainerAction extends AbstractDockerAction implements IRollbackableAdaptationAction  {
+public class PauseContainerAction extends AbstractDockerAction implements IRollbackableAdaptationAction {
 
     private boolean wasPaused = false;
 
@@ -71,7 +73,7 @@ public class PauseContainerAction extends AbstractDockerAction implements IRollb
         }
         try {
             // Container must be running to be paused
-            return isContainerRunning(containerId);
+            return DockerUtils.isContainerRunning(dockerClient, containerId);
         } catch (Exception e) {
             logger.warn("Cannot perform pause action: {}", e.getMessage());
             return false;
@@ -83,31 +85,34 @@ public class PauseContainerAction extends AbstractDockerAction implements IRollb
         logActionStart();
 
         try {
+            // Find the container
+            Container container = DockerUtils.findContainer(dockerClient, containerId);
+            if (container == null)
+                throw new DockerActionException("Container not found: " + containerId, containerId, actionType);
+            containerId = container.getId();
             // Check if container is already paused
-            if (isContainerPaused(containerId)) {
+            if (DockerUtils.isContainerPaused(container)) {
                 logger.info("Container {} is already paused", containerId);
                 return AdaptationActionResult.SKIPPED;
             }
 
             // Check if container is running
-            if (!isContainerRunning(containerId)) {
+            if (!DockerUtils.isContainerRunning(container)) {
                 logger.warn("Container {} is not running, cannot pause", containerId);
                 return AdaptationActionResult.SKIPPED;
             }
 
-            // Find and pause the container
-            findContainer(containerId);
-            dockerClient.pauseContainerCmd(containerId).exec();
+            // Pause the container
+            dockerClient.pauseContainerCmd(container.getId()).exec();
             wasPaused = true;
 
             // Verify container is paused
             Thread.sleep(500); // Brief wait for state change
-            if (!isContainerPaused(containerId)) {
+            if (!DockerUtils.isContainerPaused(dockerClient, container.getId())) {
                 throw new DockerActionException(
                         "Container state did not change to paused",
-                        containerId,
-                        DockerActionType.PAUSE_CONTAINER
-                );
+                        container.getId(),
+                        DockerActionType.PAUSE_CONTAINER);
             }
 
             logActionSuccess();
@@ -126,8 +131,7 @@ public class PauseContainerAction extends AbstractDockerAction implements IRollb
                     "Failed to pause container: " + e.getMessage(),
                     e,
                     containerId,
-                    DockerActionType.PAUSE_CONTAINER
-            );
+                    DockerActionType.PAUSE_CONTAINER);
         }
     }
 
@@ -141,11 +145,16 @@ public class PauseContainerAction extends AbstractDockerAction implements IRollb
         logger.info("Rolling back pause action - unpausing container: {}", containerId);
 
         try {
+            // Find the container
+            Container container = DockerUtils.findContainer(dockerClient, containerId);
+            if (container == null)
+                throw new DockerActionException("Container not found: " + containerId, containerId, actionType);
+
             dockerClient.unpauseContainerCmd(containerId).exec();
 
             // Verify container is running
             Thread.sleep(500);
-            if (!isContainerRunning(containerId)) {
+            if (!DockerUtils.isContainerRunning(dockerClient, container.getId())) {
                 logger.warn("Container did not resume running state during rollback");
                 return AdaptationActionResult.ROLLBACK_FAILED;
             }
@@ -153,7 +162,9 @@ public class PauseContainerAction extends AbstractDockerAction implements IRollb
             wasPaused = false;
             logger.info("Successfully rolled back pause action for container: {}", containerId);
             return AdaptationActionResult.ROLLED_BACK;
-
+        } catch (DockerActionException e) {
+            logActionFailure(e);
+            throw e;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             logger.error("Rollback interrupted for container: {}", containerId);
