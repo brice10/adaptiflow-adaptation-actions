@@ -20,9 +20,9 @@ import com.github.dockerjava.api.model.PullResponseItem;
 
 import tools.spirals.cerberus237.adaptationactionsbase.docker.DockerUtils;
 
-public abstract class AbstractDockertActionIT {
+public abstract class AbstractDockerActionIT {
 
-    protected static final Logger logger = LoggerFactory.getLogger(AbstractDockertActionIT.class);
+    protected static final Logger logger = LoggerFactory.getLogger(AbstractDockerActionIT.class);
 
     public static final String TEST_CONTAINER_NAME = "adaptable-teastore-webui-" + UUID.randomUUID();;
     public static final String TEST_IMAGE_NAME = "cerberus237/adaptable-teastore-webui";

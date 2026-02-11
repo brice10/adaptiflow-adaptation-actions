@@ -12,7 +12,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ExecCommandActionIT extends AbstractDockertActionIT {
+public class ExecCommandActionIT extends AbstractDockerActionIT {
 
     protected static final Logger logger = LoggerFactory.getLogger(ExecCommandActionIT.class);
 
@@ -32,7 +32,7 @@ public class ExecCommandActionIT extends AbstractDockertActionIT {
     // Test that canPerform returns true when conditions are met
     @Test
     public void testCanPerform() {
-        String containerId = AbstractDockertActionIT.TEST_CONTAINER_NAME;
+        String containerId = AbstractDockerActionIT.TEST_CONTAINER_NAME;
         execCommandAction = new ExecCommandAction(containerId, new String[] { "ls" });
         assertTrue(execCommandAction.canPerform());
     }

@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 import tools.spirals.cerberus237.adaptationactionsbase.docker.DockerUtils;
 import tools.spirals.cerberus237.adaptationactionsbase.enums.AdaptationActionResult;
 
-public class KillContainerActionIT extends AbstractDockertActionIT {
+public class KillContainerActionIT extends AbstractDockerActionIT {
 
     protected static final Logger logger = LoggerFactory.getLogger(KillContainerActionIT.class);
 
