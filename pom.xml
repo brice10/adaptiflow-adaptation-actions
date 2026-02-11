@@ -13,6 +13,7 @@
 		<maven.compiler.source>11</maven.compiler.source>
 		<maven.compiler.target>11</maven.compiler.target>
 		<docker-java.version>3.3.6</docker-java.version>
+		<slf4j.version>2.0.0</slf4j.version>
 	</properties>
 
 	<licenses>
@@ -64,6 +65,20 @@
 			<artifactId>mockito-core</artifactId>
 			<version>5.4.0</version>
 			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<!-- Logging framework also used by ribbon -->
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>${slf4j.version}</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-simple</artifactId>
+			<version>${slf4j.version}</version>
+			<scope>provided</scope>
 		</dependency>
 	</dependencies>
 
