@@ -135,6 +135,10 @@ public class RemoveContainerAction extends AbstractDockerAction {
             if (container == null)
                 throw new DockerActionException("Container not found: " + containerId, containerId, actionType);
 
+            if (!force && DockerUtils.isContainerRunning(container)) {
+                // Cannot remove a running container
+                return AdaptationActionResult.SKIPPED;
+            }
             // Remove the container
             dockerClient.removeContainerCmd(container.getId())
                     .withForce(force)

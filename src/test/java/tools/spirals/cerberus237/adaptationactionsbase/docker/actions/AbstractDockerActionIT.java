@@ -115,16 +115,11 @@ public abstract class AbstractDockerActionIT {
         if (dockerIsAvailable) {
             try {
                 // Check if the container exists
-                Optional<Container> containerOptional = dockerClient.listContainersCmd()
-                        .withShowAll(true) // Show all containers, including stopped ones
-                        .exec().stream()
-                        .filter(container -> container.getNames().length > 0
-                                && container.getNames()[0].equals("/" + TEST_CONTAINER_NAME))
-                        .findFirst(); // Get the first matching container
+                Container containerOptional = DockerUtils.findContainer(dockerClient, TEST_CONTAINER_NAME); 
 
-                if (containerOptional.isPresent()) {
+                if (containerOptional != null) {
                     // Stop the container if it's running
-                    if (DockerUtils.isContainerRunning(containerOptional.get())) {
+                    if (DockerUtils.isContainerRunning(containerOptional)) {
                         dockerClient.stopContainerCmd(TEST_CONTAINER_NAME).exec();
                         logger.info("Stopped the container '{}'.", TEST_CONTAINER_NAME);
                     }
