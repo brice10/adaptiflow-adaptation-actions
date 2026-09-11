@@ -1,3 +1,15 @@
 {
-    "java.configuration.updateBuildConfiguration": "interactive"
+    "java.configuration.updateBuildConfiguration": "interactive",
+    "terminal.integrated.env.linux": {
+        "JAVA_HOME": "/home/brice/.vscode-insiders/extensions/redhat.java-1.57.2026090408-linux-x64/jre/jdk-11.0.32.1+1"
+    },
+
+    // This ensures VS Code's Java extension also uses JDK 11 for code intelligence:
+    "java.configuration.runtimes": [
+    {
+      "name": "JavaSE-11",
+      "path": "/home/brice/.vscode-insiders/extensions/redhat.java-1.57.2026090408-linux-x64/jre/jdk-11.0.32.1+1", // Replace with your path
+      "default": true
+    }
+  ]
 }
